@@ -13,5 +13,18 @@ fn main() {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     info!("Hello, world!");
+
+    let peripherals = Peripherals::take().unwrap();
+    blink(peripherals);
 }
 
+fn blink(peripherals: Peripherals) {
+    let mut led = gpio::PinDriver::output(peripherals.pins.gpio2).unwrap();
+
+    loop {
+        led.set_high().unwrap();
+        thread::sleep(Duration::from_millis(500));
+        led.set_low().unwrap();
+        thread::sleep(Duration::from_millis(500));
+    }
+}
