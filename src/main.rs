@@ -1,12 +1,11 @@
+use dht_sensor::{dht22, DhtReading};
+use esp_idf_hal::delay;
 use esp_idf_hal::gpio;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
-use futures::executor::block_on;
 use log::*;
-use std::rc::Rc;
-use std::cell::RefCell;
 use std::thread;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 fn main() {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -16,75 +15,28 @@ fn main() {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     info!("Hello, world!");
+
     let peripherals = Peripherals::take().unwrap();
-    let dabba: Rc<RefCell<gpio::Gpio15>> = Rc::new(RefCell::new(peripherals.pins.gpio15));
-    let something = asdf(dabba);
-    block_on(something);
+    let pin: gpio::Gpio19 = peripherals.pins.gpio19;
+    sense(pin);
 }
 
-fn blink(peripherals: Peripherals) {
-    let mut led = gpio::PinDriver::output(peripherals.pins.gpio2).unwrap();
-
-    loop {
-        led.set_high().unwrap();
-        thread::sleep(Duration::from_millis(500));
-        led.set_low().unwrap();
-        thread::sleep(Duration::from_millis(500));
-    }
-}
-
-async fn asdf(dabba: Rc<RefCell<gpio::Gpio15>>) {
-    let pin = dabba.borrow_mut();
+fn sense(pin: gpio::Gpio19) {
     let mut sensor = gpio::PinDriver::input_output(pin).unwrap();
-    dht_init_signal(&mut sensor);
-    let mut i = 0;
-    println!("Listening for data from DHT");
 
-    while i < 42 {
-        i += 1;
-        let res = dht_signal(&mut sensor);
-        if res.await {
-            println!("true");
-        } else {
-            println!("false");
-        }
-    }
-}
+    sensor.set_high();
+    thread::sleep(Duration::from_millis(1000));
 
-fn dht_init_signal(sensor: &mut gpio::PinDriver<gpio::Gpio15, gpio::InputOutput>) {
-    println!("Starting the init signal");
-    // Set the pin to low for 10 ms
-    sensor.set_low().unwrap();
-    thread::sleep(Duration::from_millis(10));
+    let mut d = delay::Ets;
+    let reading = dht22::Reading {
+        temperature: 0.0,
+        relative_humidity: 0.0,
+    };
 
-    // Set the pin to high for 40 microseconds
-    sensor.set_high().unwrap();
-    thread::sleep(Duration::from_micros(50));
-    println!("Init signal finished");
+    let mut input_sensor = sensor.into_input().unwrap();
 
-    if sensor.is_low() {
-        println!("Sensor pulled low");
-    }
-
-    sensor.set_low().unwrap();
-    if sensor.is_low() {
-        println!("We sent low");
-    }
-}
-
-async fn dht_signal(sensor: &mut gpio::PinDriver<'_, gpio::Gpio15, gpio::InputOutput>) -> bool {
-    sensor.wait_for_rising_edge().await.unwrap();
-    let start = SystemTime::now();
-    println!("Rising Edge detected");
-
-    sensor.wait_for_falling_edge().await.unwrap();
-    let duration = SystemTime::now().duration_since(start).unwrap();
-    println!("Falling Edge detected");
-
-    println!("Duration: {} microseconds", duration.as_micros());
-    if duration.as_micros() > 40 {
-        return true;
-    } else {
-        return false;
+    match dht22::Reading::read(&mut d, &mut sensor) {
+        Ok(r) => println!("Got some reading"),
+        Err(e) => println!("Failed with error"),
     }
 }
