@@ -24,19 +24,21 @@ fn main() {
 fn sense(pin: gpio::Gpio19) {
     let mut sensor = gpio::PinDriver::input_output(pin).unwrap();
 
-    sensor.set_high();
+    sensor.set_high().unwrap();
     thread::sleep(Duration::from_millis(1000));
 
     let mut d = delay::Ets;
-    let reading = dht22::Reading {
-        temperature: 0.0,
-        relative_humidity: 0.0,
-    };
 
-    let mut input_sensor = sensor.into_input().unwrap();
-
-    match dht22::Reading::read(&mut d, &mut sensor) {
-        Ok(r) => println!("Got some reading"),
-        Err(e) => println!("Failed with error"),
+    let mut iterations = 1000;
+    while iterations > 0 {
+        thread::sleep(Duration::from_secs(3));
+        iterations -= 1;
+        match dht22::Reading::read(&mut d, &mut sensor) {
+            Ok(r) => println!(
+                "Temperature: {}\tHumidity: {}",
+                r.temperature, r.relative_humidity
+            ),
+            Err(e) => println!("Failed with error: {:?}", e),
+        }
     }
 }
