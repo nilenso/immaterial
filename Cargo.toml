@@ -32,7 +32,7 @@ esp-idf-sys = { version = "0.33", default-features = false }
 esp-idf-hal = { git = "https://github.com/esp-rs/esp-idf-hal.git", rev = "a03e2e32f3d7fb53f1e5ea3c590f6f379ea40b9f", optional = true, default-features = false }
 esp-idf-svc = { version = "0.46", optional = true, default-features = false }
 embedded-svc = { version = "0.25", optional = true, default-features = false }
-dht-sensor = "0.2.1"
+dht-sensor = {git = "https://github.com/nilenso/dht-sensor.git", branch = "main" }
 
 [build-dependencies]
 embuild = "0.31.2"

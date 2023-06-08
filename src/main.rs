@@ -1,4 +1,4 @@
-use dht_sensor::{dht22, DhtReading};
+use dht_sensor::dht22;
 use esp_idf_hal::delay;
 use esp_idf_hal::gpio;
 use esp_idf_hal::peripherals::Peripherals;
@@ -17,12 +17,12 @@ fn main() {
     info!("Hello, world!");
 
     let peripherals = Peripherals::take().unwrap();
-    let pin: gpio::Gpio19 = peripherals.pins.gpio19;
+    let pin: gpio::Gpio15 = peripherals.pins.gpio15;
     sense(pin);
 }
 
-fn sense(pin: gpio::Gpio19) {
-    let mut sensor = gpio::PinDriver::input_output(pin).unwrap();
+fn sense(pin: gpio::Gpio15) {
+    let mut sensor = gpio::PinDriver::input_output_od(pin).unwrap();
 
     sensor.set_high().unwrap();
     thread::sleep(Duration::from_millis(1000));
@@ -33,7 +33,7 @@ fn sense(pin: gpio::Gpio19) {
     while iterations > 0 {
         thread::sleep(Duration::from_secs(3));
         iterations -= 1;
-        match dht22::Reading::read(&mut d, &mut sensor) {
+        match dht22::read(&mut d, &mut sensor) {
             Ok(r) => println!(
                 "Temperature: {}\tHumidity: {}",
                 r.temperature, r.relative_humidity
